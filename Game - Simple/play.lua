@@ -30,19 +30,27 @@ local physics = require("physics")
 -- 
 -- ------------------------------------------------------------------------------
 local rock_array = {}
+
 local ship_sheet
 local rock_sheet
 local explosion_sheet 
 local explosion_small_sheet
 local explosion_medium_sheet
+local alien_sheet
+local pick_up_sheet
+
 local ship
-local rock_timer
+
 local game_on
 local score
 local score_text
 local target_x
 local target_y
+
 local missile_timer
+local rock_timer
+local alien_timer
+local pick_up_timer
 
 
 
@@ -111,6 +119,63 @@ end
 
 
 
+-- make_alien
+-- -----------------------------------------------------------------------------
+local function make_alien()
+	local alien = display.newSprite( alien_sheet, {start=1, count=25} )
+	alien:setFrame( math.random(1, 25) )
+	physics.addBody( alien, "dynamic", {isSensor} )
+	alien.canBeHitByPlayerMissile = true
+	alien.x = math.random( 16, display.contentWidth - 16 ) 
+	alien.y = -32
+	
+	alien.canDestroyShip = true
+	alien.canBeHitByPlayerMissile = true
+	
+	transition.to( alien, {y=display.contentHeight+32, time=5000, onComplete=function( alien ) 
+		display.remove( alien )
+	end } )
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- make_pick_up
+---------------------------------------------------------------------------
+local function make_pick_up()
+	local pickup = display.newSprite( pick_up_sheet, {start=1, count=28} )
+	pickup:setFrame( math.random(1, 28) )
+	physics.addBody( pickup, "dynamic", {isSensor} )
+	pickup.canBeHitByPlayerMissile = true
+	pickup.x = math.random( 16, display.contentWidth - 16 ) 
+	pickup.y = -32
+	
+	pickup.shipCanPickUp = true
+	pickup.canBeHitByPlayerMissile = true
+	
+	transition.to( pickup, {y=display.contentHeight+32, time=5000, onComplete=function( pickup ) 
+		display.remove( pickup )
+	end } )
+end 
+
+
+
+
+
+
+
+
+
+
 
 -- Removes explosions 
 -- ------------------------------------------------------------------------------
@@ -132,6 +197,8 @@ local function make_explosion( size )
 	else 
 		explosion = display.newSprite( explosion_sheet, {start=1, count=40, loopCount=1} )
 	end 
+	
+	scene.view:insert( explosion )
 	
 	explosion:addEventListener( "sprite", remove_explosion )
 	explosion:play()
@@ -189,7 +256,9 @@ local function game_over()
 		explosion.y = ship.y
 		ship.isVisible = false
 		timer.cancel( missile_timer )
-		storyboard.showOverlay( "game_over" )
+		timer.performWithDelay( 1200, function()
+			storyboard.showOverlay( "game_over", {effect="fade"} )
+		end )
 		storyboard.level_complete( score )
 	end 
 end 
@@ -326,6 +395,26 @@ local function on_collision( event )
 			explosion.x = obj2.x
 			explosion.y = obj2.y
 			display.remove( obj2 )
+		elseif obj1.isMissile and obj2.canBeHitByPlayerMissile then 
+			local explosion = make_explosion( "small" )
+			explosion.x = obj1.x
+			explosion.y = obj1.y
+			display.remove( obj1 )
+			
+			local explosionM = make_explosion( "medium" )
+			explosionM.x = obj2.x
+			explosionM.y = obj2.y
+			display.remove( obj2 )
+		elseif obj2.isMissile and obj1.canBeHitByPlayerMissile then 
+			local explosion = make_explosion( "small" )
+			explosion.x = obj2.x
+			explosion.y = obj2.y
+			display.remove( obj2 )
+			
+			local explosionM = make_explosion( "medium" )
+			explosionM.x = obj1.x
+			explosionM.y = obj1.y
+			display.remove( obj1 )
 		end 
 	end  
 end 
@@ -352,6 +441,8 @@ function scene:createScene( event )
 	explosion_sheet = graphics.newImageSheet( "images/explosion_1.png", {width=93, height=100, numFrames=40} )
 	explosion_small_sheet = graphics.newImageSheet( "images/explosion-small.png", require("explosion-small").getSheetOptions() )
 	explosion_medium_sheet = graphics.newImageSheet( "images/explosion-medium.png", require("explosion-medium").getSheetOptions() )
+	alien_sheet = graphics.newImageSheet( "images/Alien_32.png", {width=32, height=32, numFrames=25} )
+	pick_up_sheet = graphics.newImageSheet( "images/pick-ups.png", require("pick-ups").getSheetOptions() )
 
 	score_text = display.newText( "0", 10, 10, native.systemFont, 24 )
 	group:insert( score_text )
@@ -378,12 +469,18 @@ end
 function scene:enterScene( event )
 	local group = self.view
 	
-	rock_timer = timer.performWithDelay( 1000, make_rock, 0 )
 	Runtime:addEventListener( "enterFrame", on_frame )
 	Runtime:addEventListener( "touch", on_touch )
 	Runtime:addEventListener( "collision", on_collision )
 	
+	-- *************************************************************************
+	-- These timers add rocks, missiles, and aliens to the scene
+	-- *************************************************************************
+	rock_timer = timer.performWithDelay( 1000, make_rock, 0 )
 	missile_timer = timer.performWithDelay( 400, make_missile, 0 )
+	alien_timer = timer.performWithDelay( 5000, make_alien, 0 )
+	pick_up_timer = timer.performWithDelay( 7500, make_pick_up, 0 )
+	-- *************************************************************************
 end
 
 
