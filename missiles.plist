@@ -1,0 +1,150 @@
+local M = {}
+
+local getSheetOptions = function()
+	local options = {
+		frames = {
+		
+			{
+				x = 55,
+				y = 39,
+				width = 4,
+				height = 11
+			},
+		
+			{
+				x = 27,
+				y = 81,
+				width = 10,
+				height = 11
+			},
+		
+			{
+				x = 0,
+				y = 105,
+				width = 12,
+				height = 13
+			},
+		
+			{
+				x = 41,
+				y = 78,
+				width = 12,
+				height = 14
+			},
+		
+			{
+				x = 28,
+				y = 27,
+				width = 11,
+				height = 11
+			},
+		
+			{
+				x = 64,
+				y = 13,
+				width = 8,
+				height = 11
+			},
+		
+			{
+				x = 28,
+				y = 40,
+				width = 8,
+				height = 10
+			},
+		
+			{
+				x = 31,
+				y = 66,
+				width = 8,
+				height = 11
+			},
+		
+			{
+				x = 55,
+				y = 26,
+				width = 8,
+				height = 11
+			},
+		
+			{
+				x = 31,
+				y = 52,
+				width = 8,
+				height = 12
+			},
+		
+			{
+				x = 64,
+				y = 0,
+				width = 8,
+				height = 11
+			},
+		
+			{
+				x = 14,
+				y = 0,
+				width = 12,
+				height = 50
+			},
+		
+			{
+				x = 0,
+				y = 0,
+				width = 12,
+				height = 51
+			},
+		
+			{
+				x = 41,
+				y = 27,
+				width = 12,
+				height = 49
+			},
+		
+			{
+				x = 0,
+				y = 53,
+				width = 12,
+				height = 50
+			},
+		
+			{
+				x = 14,
+				y = 81,
+				width = 11,
+				height = 42
+			},
+		
+			{
+				x = 14,
+				y = 52,
+				width = 15,
+				height = 27
+			},
+		
+			{
+				x = 28,
+				y = 0,
+				width = 16,
+				height = 25
+			},
+		
+			{
+				x = 46,
+				y = 0,
+				width = 16,
+				height = 24
+			},
+		
+		},
+		
+		sheetContentWidth = 128,
+		sheetContentHeight = 128
+	}
+
+	return options
+end
+M.getSheetOptions = getSheetOptions
+
+return M

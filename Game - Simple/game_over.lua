@@ -35,8 +35,8 @@ end
 function scene:createScene( event )
 	local group = self.view
 
-	background = display.newRect( 0, 0, display.contentWidth, display.contentHeight )
-	background:setFillColor( 0, 0, 0, 128 )
+	background = display.newRect( display.contentCenterX, display.contentCenterY, display.contentWidth, display.contentHeight )
+	background:setFillColor( 1, 0, 0, 0.5 )
 	group:insert( background )
 	
 	label = display.newText( "Game Over", 0, 0, native.systemFont, 48 )

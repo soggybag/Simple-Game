@@ -21,6 +21,8 @@ local scene = storyboard.newScene()
 ---------------------------------------------------------------------------------
 
 
+local physics = require("physics")
+
 
 -- ------------------------------------------------------------------------------
 -- 
@@ -31,13 +33,16 @@ local rock_array = {}
 local ship_sheet
 local rock_sheet
 local explosion_sheet 
+local explosion_small_sheet
+local explosion_medium_sheet
 local ship
 local rock_timer
-local game_over
+local game_on
 local score
 local score_text
 local target_x
 local target_y
+local missile_timer
 
 
 
@@ -64,12 +69,17 @@ end
 -- ------------------------------------------------------------------------------
 local function rock_complete( rock ) 
 	remove_rock( rock )
-	if game_over == false then 
-		print( "score points" )
+	if game_on == true then 
 		score = score + 1
 		score_text.text = score
 	end 
 end 
+
+
+
+
+
+
 
 
 -- Function to make new rocks 
@@ -77,19 +87,29 @@ end
 local function make_rock()
 	local t = math.random( 0, 2000 ) + 500
 	local rock = display.newSprite( rock_sheet, {start=1, count=30, time=t} )
+	physics.addBody( rock, "dynamic", {isSensor=true, radius=20} )
 	rock:setFrame( math.random( 1, 30 ) )
 	rock:play()
 	rock.x = math.random( 0, 320 )
 	rock.y = -60
 	
+	rock.canDestroyShip = true
+	rock.isRock = true
+	
 	scene.view:insert( rock )
 	
-	rock.xScale = ( math.random() * 0.5 ) + 0.5
-	rock.yScale = rock.xScale
+	-- rock.xScale = ( math.random() * 0.5 ) + 0.5
+	-- rock.yScale = rock.xScale
 	
 	rock.transition = transition.to( rock, {y=520, time=4000, onComplete=rock_complete} )
 	rock_array[ rock ] = rock
 end 
+
+
+
+
+
+
 
 
 -- Removes explosions 
@@ -103,8 +123,16 @@ end
 
 -- Makes explosions 
 -- -----------------------------------------------------------------------------
-local function make_explosion()
-	local explosion = display.newSprite( explosion_sheet, {start=1, count=40, loopCount=1} )
+local function make_explosion( size )
+	local explosion
+	if size == "small" then 
+		explosion = display.newSprite( explosion_small_sheet, {start=1, count=13, loopCount=1} )
+	elseif size == "medium" then
+		explosion = display.newSprite( explosion_medium_sheet, {start=1, count=13, loopCount=1} )
+	else 
+		explosion = display.newSprite( explosion_sheet, {start=1, count=40, loopCount=1} )
+	end 
+	
 	explosion:addEventListener( "sprite", remove_explosion )
 	explosion:play()
 	return explosion
@@ -137,12 +165,42 @@ local function check_for_collision()
 			ship.isVisible = false
 			remove_rock( rock )	
 			
-			game_over = true
-			storyboard.showOverlay( "game_over" )
-			storyboard.level_complete( score )
 		end 
 	end 
 end 
+
+
+
+
+
+
+
+
+
+
+
+-- game_over 
+-- ------------------------------------------------------------------------------
+local function game_over()
+	if game_on then 
+		game_on = false
+		local explosion = make_explosion()
+		explosion.x = ship.x
+		explosion.y = ship.y
+		ship.isVisible = false
+		timer.cancel( missile_timer )
+		storyboard.showOverlay( "game_over" )
+		storyboard.level_complete( score )
+	end 
+end 
+
+
+
+
+
+
+
+
 
 
 -- Function moves ship 
@@ -153,14 +211,29 @@ local function move_ship()
 end 
 
 
+
+
+
+
+
+
+
+
+
 -- handles Frame events 
 -- ------------------------------------------------------------------------------
 local function on_frame( event ) 
-	if game_over == false then 
-		check_for_collision()
-	end 
 	move_ship()
 end 
+
+
+
+
+
+
+
+
+
 
 
 -- Handles touch events 
@@ -170,6 +243,91 @@ local function on_touch( event )
 		target_x = event.x 
 		target_y = event.y
 	end 
+end 
+
+
+
+
+
+
+
+-- make_missile
+-- -----------------------------------------------------------------------------
+local function make_missile() 
+	local missile = display.newRect( 0, 0, 3, 7 )
+	physics.addBody( missile, "kinematic", {isSensor=true} )
+	missile.x = ship.x
+	missile.y = ship.y - 7
+	missile:setFillColor( 1, 0, 0 )
+	missile.isMissile = true
+	
+	transition.to( missile, {y=missile.y - 500, time=1000, onComplete=function(missile)
+		display.remove( missile )
+	end } )
+end 
+
+
+
+
+
+
+-- make_ship
+-- -----------------------------------------------------------------------------
+local function make_ship()
+	ship = display.newSprite( ship_sheet, {start=1, count=5} )
+	physics.addBody( ship, "dynamic", {isSensor=true, radius=17} )
+	
+	scene.view:insert( ship )
+	
+	ship:setFrame( 3 )
+	ship.x = 160
+	ship.y = 440
+	
+	target_x = ship.x
+	target_y = ship.y
+
+	ship.vx = 0
+	ship.isVisible = true
+end 
+
+
+
+
+
+
+
+
+
+-- on_collision
+-- ------------------------------------------------------------------------------
+local function on_collision( event ) 
+	if event.phase == "began" then
+		local obj1 = event.object1
+		local obj2 = event.object2
+		
+		-- Check for collision with ship
+		if obj1 == ship and obj2.canDestroyShip then 
+			-- ship collided with rock
+			print( "rock hit ship" )
+			game_over()
+		elseif obj2 == ship and obj1.canDestroyShip then 
+			-- ship collided with rock
+			print( "rock hit ship" )
+			game_over()
+		elseif obj1.isMissile and obj2.isRock then
+			print( "missile hit rock" )
+			local explosion = make_explosion( "small" )
+			explosion.x = obj1.x
+			explosion.y = obj1.y
+			display.remove( obj1 )
+		elseif obj2.isMissile and obj1.isRock then 
+			print( "missile hit rock" )
+			local explosion = make_explosion( "small" )
+			explosion.x = obj2.x
+			explosion.y = obj2.y
+			display.remove( obj2 )
+		end 
+	end  
 end 
 
 
@@ -192,16 +350,8 @@ function scene:createScene( event )
 	ship_sheet = graphics.newImageSheet( "images/ships_1.png", {width=36, height=50, numFrames=5} )
 	rock_sheet = graphics.newImageSheet( "images/rocks_1.png", {width=64, height=64, numFrames=30} )
 	explosion_sheet = graphics.newImageSheet( "images/explosion_1.png", {width=93, height=100, numFrames=40} )
-
-	ship = display.newSprite( ship_sheet, {start=1, count=5} )
-	ship:setFrame( 3 )
-	ship.x = 160
-	ship.y = 440
-	
-	target_x = ship.x
-	target_y = ship.y
-
-	ship.vx = 0
+	explosion_small_sheet = graphics.newImageSheet( "images/explosion-small.png", require("explosion-small").getSheetOptions() )
+	explosion_medium_sheet = graphics.newImageSheet( "images/explosion-medium.png", require("explosion-medium").getSheetOptions() )
 
 	score_text = display.newText( "0", 10, 10, native.systemFont, 24 )
 	group:insert( score_text )
@@ -211,8 +361,13 @@ end
 -- Called just before this scene moves into view 
 -- ------------------------------------------------------------------------------
 function scene:willEnterScene( event )
-	ship.isVisible = true
-	game_over = false
+	physics.start()
+	physics.setGravity( 0, 0 )
+	-- physics.setDrawMode( "hybrid" )
+	
+	make_ship()
+	
+	game_on = true
 	score = 0
 	score_text.text = 0
 end 
@@ -226,6 +381,9 @@ function scene:enterScene( event )
 	rock_timer = timer.performWithDelay( 1000, make_rock, 0 )
 	Runtime:addEventListener( "enterFrame", on_frame )
 	Runtime:addEventListener( "touch", on_touch )
+	Runtime:addEventListener( "collision", on_collision )
+	
+	missile_timer = timer.performWithDelay( 400, make_missile, 0 )
 end
 
 
@@ -236,6 +394,9 @@ function scene:exitScene( event )
 	timer.cancel( rock_timer )
 	Runtime:removeEventListener( "enterFrame", on_frame )
 	Runtime:removeEventListener( "touch", on_touch )
+	Runtime:removeEventListener( "collision", on_collision )
+	
+	timer.cancel( missile_timer )
 end
 
 
@@ -246,6 +407,9 @@ function scene:didExitScene( event )
 		transition.cancel( rock_array[k].transition )
 		remove_rock( rock_array[k] )
 	end 
+	
+	display.remove( ship )
+	
 end 
 
 

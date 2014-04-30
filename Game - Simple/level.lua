@@ -62,7 +62,7 @@ local function make_level_button( level, stars, isLocked )
 	
 	level_group.level = level
 		
-	level_number:setTextColor( 0, 0, 0 )
+	level_number:setFillColor( 0, 0, 0 )
 	level_number.x = 0
 	level_number.y = -10
 		
@@ -71,7 +71,6 @@ local function make_level_button( level, stars, isLocked )
 		
 	scene.view:insert( level_group )
 		
-	print( "***** Making stars" )
 	for j = 1, stars do 
 		print( "Level:", level, "stars:", stars )
 		local star = display.newImageRect( "images/Level-Star.png", 21, 20 )
@@ -93,8 +92,6 @@ end
 
 local function level_complete( score )
 	local n = math.floor( score / current_level )
-	
-	print( "adjusting level score:", score, "level:", current_level, "stars:", n )
 	
 	if n > level_array[current_level].stars then 
 		if n > 2 then 
